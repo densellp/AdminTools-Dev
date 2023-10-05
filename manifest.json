@@ -1,0 +1,71 @@
+{
+	"format_version": 2,
+	"metadata": {
+		"authors": [
+			"Densell Peters III"
+		],
+		"generated_with": {
+			"bridge": [
+				"2.6.2"
+			],
+			"dash": [
+				"0.10.10"
+			]
+		}
+	},
+	"header": {
+		"name": "Admin Tools Dev",
+		"description": "",
+		"min_engine_version": [
+			1,
+			20,
+			0
+		],
+		"uuid": "5c350b30-34f8-4dfb-95a3-04db43361d1d",
+		"version": [
+			1,
+			0,
+			0
+		]
+	},
+	"modules": [
+		{
+			"type": "data",
+			"uuid": "449aef29-8d6d-4286-a1c8-7a5a3f336597",
+			"version": [
+				1,
+				0,
+				0
+			]
+		},
+		{
+			"type": "script",
+			"language": "javascript",
+			"uuid": "7c0d7d4e-c20c-4ac8-b1e0-16c89abdabe9",
+			"entry": "scripts/main.js",
+			"version": [
+				1,
+				0,
+				0
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"module_name": "@minecraft/server",
+			"version": "1.6.0-beta"
+		},
+		{
+			"module_name": "@minecraft/server-gametest",
+			"version": "1.0.0-beta"
+		},
+		{
+			"module_name": "@minecraft/server-ui",
+			"version": "1.2.0-beta"
+		},
+		{
+			"module_name": "@minecraft/server-net",
+			"version": "1.0.0-beta"
+		}
+	]
+}
