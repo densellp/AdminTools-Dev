@@ -1,14 +1,17 @@
-console.warn("Script main.js has loaded")
+console.warn("Script main.js has loaded");
 
 import * as server from "@minecraft/server"
 import * as ui from "@minecraft/server-ui"
 import * as net from "@minecraft/server-net"
 
-console.warn("Script is running, do not panic!")
+console.warn("Script is running, do not panic!");
 
 // init code
 const world = server.world;
 const system = server.system;
+const pingServer = "http://127.0.0.1:5000";
+const requestServer = "http://127.0.0.1:5000/request";
+const commandServer = "http://127.0.0.1:5000/server";
 
 // Http Server
 let runServer = 1; // Set to 0 to disable feature
@@ -20,7 +23,7 @@ async function main(){
 
     if (runServer){
         console.warn("Http Client has started");
-        let client = await new net.HttpRequest("http://127.0.0.1:5000/server"); // Flask Server Address
+        let client = await new net.HttpRequest(commandServer); // Flask Server Address
         let httpResp;
         await waitForRequest(runServer, client, httpResp); // wait for request from Server
     } else {
@@ -29,14 +32,14 @@ async function main(){
 }
 
 function getPlayers() {
-    console.warn("Looking up player data")
+    console.warn("Looking up player data");
     const players = server.world.getPlayers();
     console.log(players); // Show us the player list
     return players;
 }
 
 function playerLookup(playerObj, name){
-    const size = playerObj.length
+    const size = playerObj.length;
     // console.warn(`list size is: ${size}`);
     for (let i = 0; i < size; i++) {
         // console.warn(`player ${playerObj[i].name} is in the list`);
@@ -51,7 +54,7 @@ function playerLookup(playerObj, name){
 async function waitForRequest(runServer, client, httpResp){
     while(runServer){
         await client.setBody("29");
-        httpResp = await net.http.request(client)
+        httpResp = await net.http.request(client);
         // console.warn("Ping Http Server");
         httpResp = Number(httpResp.body);
         if (httpResp === 28){
@@ -61,15 +64,16 @@ async function waitForRequest(runServer, client, httpResp){
     }
 }
 
-async function pingHttpServer(code, result) {
-    const tempCode = String(code) // convert code to string to send to server
-    console.warn("You are attempting to ping an http server")
+async function pingHttpServer(code, result, data, server) {
+    console.warn(`data sent to server: ${data}`)
+    const tempCode = String(code); // convert code to string to send to server
+    console.warn("You are attempting to ping an http server");
 
-    let req = await new net.HttpRequest("http://127.0.0.1:5000")
+    let req = await new net.HttpRequest(server);
 
-    console.warn("Contents of body for HttpRequest")
+    console.warn("Contents of body for HttpRequest");
     await req.setBody(tempCode);
-    console.warn(req.body)
+    console.warn(req.body);
 
     try {
         const httpResponse = await net.http.request(req);
@@ -79,6 +83,8 @@ async function pingHttpServer(code, result) {
         resp = Number(resp);
         if (resp === 27){
             result.source.runCommandAsync(`w @s server pinged HTTP Server and received response code ${resp}`); // Run command in addon
+        } else if (resp === 34 || resp === 35){
+            console.warn("Player either left or joined the game");
         } else {
             result.source.runCommandAsync(`w @s another code was sent back ${resp}, did you mean something else?`);
         }
@@ -97,18 +103,18 @@ world.afterEvents.itemUse.subscribe(async result => {
             .title("Admin Functions")
             .button("Kick Player")
             .button("Ping Http Server")
-            .button("Start Http Server")
+            .button("Send a different code to Http Server")
             .show(result.source)
 
         form.then(async fulfilled => {
-            console.warn("Form Submitted, attempting to lookup players")
+            console.warn("Form Submitted, attempting to lookup players");
             let selection = fulfilled.selection; // This is a number that indexs starting at 0
-            console.warn("Here is the selection value")
-            console.log(selection)
+            console.warn("Here is the selection value");
+            console.log(selection);
             let players = getPlayers();
-            console.warn("Player info recieved, attempting to navigate button choice")
+            console.warn("Player info recieved, attempting to navigate button choice");
             if (selection == 0) {
-                console.warn("You are trying to kick players?!")
+                console.warn("You are trying to kick players?!");
                 const playerForm = new ui.ActionFormData()
                     .title("Kick Players")
                     .button(players[0].name)
@@ -116,18 +122,18 @@ world.afterEvents.itemUse.subscribe(async result => {
 
                 playerForm.then(fulfilled => {
                     let selection = fulfilled.selection;
-                    console.warn(`attempting to kick ${players[selection].name}}`)
+                    console.warn(`attempting to kick ${players[selection].name}}`);
                     if (selection + 1) {
                         result.source.runCommandAsync(`kick ${players[selection].name}`);
-                        console.warn(`Kicked Player ${players[selection].name} from the game`)
+                        console.warn(`Kicked Player ${players[selection].name} from the game`);
                     }
                 });
             }
             else if (selection == 1){
-                await pingHttpServer(30, result);
+                await pingHttpServer(30, result, "null", pingServer);
             }
             else if (selection == 2){
-                runServer = 1;
+                await pingHttpServer(31, result, "null",pingServer);
             }
         });
     }
@@ -210,14 +216,16 @@ world.beforeEvents.chatSend.subscribe((data) => {
     }})
 })
 
-world.afterEvents.playerJoin.subscribe(result => {
+world.afterEvents.playerJoin.subscribe(async result => {
 
     console.warn(result.playerName);
+    await pingHttpServer(32, result, "player joined", requestServer);
 
 });
 
-world.afterEvents.playerLeave.subscribe(result => {
+world.afterEvents.playerLeave.subscribe(async result => {
 
     console.warn(result.playerName);
+    await pingHttpServer(33, result, "player left", requestServer);
 
 });
