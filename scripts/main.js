@@ -4,10 +4,7 @@ import * as server from "@minecraft/server"
 import * as ui from "@minecraft/server-ui"
 import * as net from "@minecraft/server-net"
 
-// import * as hello from './hello.js';
-// console.warn(hello.sayHello("Bruh this works!"));
-
-console.warn("Script is running, do not panic!, is this working??!!!")
+console.warn("Script is running, do not panic!")
 
 // init code
 const world = server.world;
@@ -23,12 +20,11 @@ async function main(){
 
     if (runServer){
         console.warn("Http Client has started");
-        // This whole block of code does not work right now
         let client = await new net.HttpRequest("http://127.0.0.1:5000/server"); // Flask Server Address
         let httpResp;
         await waitForRequest(runServer, client, httpResp); // wait for request from Server
     } else {
-        console.warn("HTTP Client is not running");
+        console.warn("Http Client has not started");
     }
 }
 
@@ -43,7 +39,6 @@ function playerLookup(playerObj, name){
     const size = playerObj.length
     // console.warn(`list size is: ${size}`);
     for (let i = 0; i < size; i++) {
-        // Code to be repeated goes here
         // console.warn(`player ${playerObj[i].name} is in the list`);
         if (playerObj[i].name === name){
             // console.warn(`player ${name} exist so code can execute`);
@@ -53,20 +48,8 @@ function playerLookup(playerObj, name){
       console.warn(`player ${name} does not exist, please try again`);
 }
 
-// async function setHttpData(data) {
-//     await data.setBody("Request data from Flask Server");
-//     return data;
-// }s
-
-// async function sleep(ms) {
-//     const start = Date.now();
-//     while (Date.now() - start < ms) {}
-// }
-
 async function waitForRequest(runServer, client, httpResp){
     while(runServer){
-        //await sleep(2000); // Wait for 2 seconds
-        //httpResp = await makeHttpRequest(httpResp, client);
         await client.setBody("29");
         httpResp = await net.http.request(client)
         // console.warn("Ping Http Server");
@@ -78,27 +61,31 @@ async function waitForRequest(runServer, client, httpResp){
     }
 }
 
-// async function makeHttpRequest(data, client) {
-//     data = await net.http.request(client);
-//     return data;
-// }
+async function pingHttpServer(code, result) {
+    const tempCode = String(code) // convert code to string to send to server
+    console.warn("You are attempting to ping an http server")
 
-// async function testLoop(){
-//     while(1){
-//         await sleep(2000);
-//         console.warn("Testing Loop")
-//     }
-// }
+    let req = await new net.HttpRequest("http://127.0.0.1:5000")
 
-// async function asyncFunc() {
-//     let n = 0;
-//     while(n < 5){
-//         await sleep(2000);
-//         console.warn(`Testing Loop ${n}`);
-//         n += 1;
-//     }
-//     return;
-// }
+    console.warn("Contents of body for HttpRequest")
+    await req.setBody(tempCode);
+    console.warn(req.body)
+
+    try {
+        const httpResponse = await net.http.request(req);
+        console.warn("here is the body of the response from the server");
+        console.warn(httpResponse.body);
+        let resp = httpResponse.body;
+        resp = Number(resp);
+        if (resp === 27){
+            result.source.runCommandAsync(`w @s server pinged HTTP Server and received response code ${resp}`); // Run command in addon
+        } else {
+            result.source.runCommandAsync(`w @s another code was sent back ${resp}, did you mean something else?`);
+        }
+        } catch (error) {
+        console.error('Error making the HTTP request:', error);
+        }
+}
 
 ///////////////////////////////////////////////////
 
@@ -110,6 +97,7 @@ world.afterEvents.itemUse.subscribe(async result => {
             .title("Admin Functions")
             .button("Kick Player")
             .button("Ping Http Server")
+            .button("Start Http Server")
             .show(result.source)
 
         form.then(async fulfilled => {
@@ -136,37 +124,10 @@ world.afterEvents.itemUse.subscribe(async result => {
                 });
             }
             else if (selection == 1){
-                console.warn("You are attempting to ping an http server")
-
-                let req = await new net.HttpRequest("http://127.0.0.1:5000")
-
-                console.warn("Contents of body for HTttpRequest")
-                await req.setBody("30");
-                console.warn(req.body)
-
-                // const testJSON = JSON.stringify({
-                //     test: "BRUH",
-                // });
-                // req.setBody(testJSON);
-                // req.SetBody = JSON.stringify({
-                //     test: "BRUH",
-                // });
-                // req.setBody = "Testing One Two...."
-                // req.SetMethod = net.HttpRequestMethod.POST;
-                // req.setMethod(net.HttpRequestMethod.POST);
-
-                try {
-                    const httpResponse = await net.http.request(req);
-                    console.warn("here is the body of the response from the server");
-                    console.warn(httpResponse.body);
-                    let resp = httpResponse.body;
-                    resp = Number(resp);
-                    if (resp === 27){
-                        result.source.runCommandAsync(`w @s server pinged HTTP Server and received response code ${resp}`); // Run command in addon
-                    }
-                  } catch (error) {
-                    console.error('Error making the HTTP request:', error);
-                  }
+                await pingHttpServer(30, result);
+            }
+            else if (selection == 2){
+                runServer = 1;
             }
         });
     }
@@ -248,3 +209,15 @@ world.beforeEvents.chatSend.subscribe((data) => {
         player.sendMessage("§cPlease provide a valid command.")
     }})
 })
+
+world.afterEvents.playerJoin.subscribe(result => {
+
+    console.warn(result.playerName);
+
+});
+
+world.afterEvents.playerLeave.subscribe(result => {
+
+    console.warn(result.playerName);
+
+});
