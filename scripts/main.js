@@ -7,14 +7,14 @@ import * as net from "@minecraft/server-net"
 // import * as hello from './hello.js';
 // console.warn(hello.sayHello("Bruh this works!"));
 
-console.warn("Script is running, do not panic!")
+console.warn("Script is running, do not panic!, is this working??!!!")
 
 // init code
 const world = server.world;
 const system = server.system;
 
 // Http Server
-let runServer = 0; // Set to 0 to disable feature
+let runServer = 1; // Set to 0 to disable feature
 
 //call main()
 main();
@@ -27,6 +27,8 @@ async function main(){
         let client = await new net.HttpRequest("http://127.0.0.1:5000/server"); // Flask Server Address
         let httpResp;
         await waitForRequest(runServer, client, httpResp); // wait for request from Server
+    } else {
+        console.warn("HTTP Client is not running");
     }
 }
 
