@@ -8,27 +8,75 @@ app = Flask(__name__)
 
 task_queue = Queue()
 # client = MongoClient("localhost", 27017) # connect to db instance
-client = MongoClient("mongodb://localhost:27017/") # connect to db instance
+client = MongoClient("mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.0.2") # connect to db instance
 db = client.playerdb # Create or reference the player db
 players = db.players # collection to parse
 flagResp = 0 # Default value before response gets sent back
+
+def convert_seconds_to_timestamp(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
+
+def convert_timestamp_to_seconds(timestamp):
+    hours, minutes, seconds = map(int, timestamp.split(':'))
+    total_seconds = hours * 3600 + minutes * 60 + seconds
+    return total_seconds
+
+def convertToSeconds(timestamp, storedTimestamp):
+    timestamp_datetime = datetime.strptime(timestamp, "%B %d %I:%M:%S%p")
+    timestamp_seconds = (timestamp_datetime - datetime(1970, 1, 1)).total_seconds()
+
+    Storedtimestamp_datetime = datetime.strptime(storedTimestamp['login'], "%B %d %I:%M:%S%p")
+    Storedtimestamp_seconds = (Storedtimestamp_datetime - datetime(1970, 1, 1)).total_seconds()
+
+    print(f'Timestamp in seconds: {timestamp_seconds}')
+    print(f'Timestamp in seconds: {Storedtimestamp_seconds}')
+
+    difference =  timestamp_seconds - Storedtimestamp_seconds
+
+    print(difference)
+
+    return difference
+
+def writeToDB(data):
+    if data[0] == "32":
+        print("Save Player Login Time")
+        now = datetime.now()
+        formatted_timestamp = now.strftime("%B %d %I:%M:%S%p")
+        print(formatted_timestamp)
+        if players.find_one({"name": data[1]}):
+            print("Player found in DB")
+            players.update_one({"name": data[1]}, {"$set": {"login": formatted_timestamp}})
+        else:
+            print("Player not found in DB")
+            players.insert_one({"name": data[1], "login": formatted_timestamp, "logout": formatted_timestamp, "timePlayed": 0})
+    elif data[0] == "33":
+        print("Calculate Player total Time and save Logout Time")
+        now = datetime.now()
+        formatted_timestamp = now.strftime("%B %d %I:%M:%S%p")
+        print(formatted_timestamp)
+        if players.find_one({"name": data[1]}):
+            print("Player found in DB")
+            storedTimeStamp = players.find_one({"name": data[1]},{ "login": 1 })
+            players.update_one({"name": data[1]}, {"$set": {"logout": formatted_timestamp}})
+            print(storedTimeStamp['login'])
+            difference = convertToSeconds(formatted_timestamp, storedTimeStamp)
+            timePlayed = players.find_one({"name": data[1]},{ "timePlayed": 1 })
+            timePlayed['timePlayed'] = convert_timestamp_to_seconds(timePlayed['timePlayed']) + difference
+            timePlayedStamp = convert_seconds_to_timestamp(timePlayed['timePlayed'])
+            players.update_one({"name": data[1]}, {"$set": {"timePlayed": timePlayedStamp}})
+        else:
+            print("Player not found in DB")
+            players.insert_one({"name": data[1], "login": formatted_timestamp, "logout": formatted_timestamp, "timePlayed": 0})
+
 
 # Code form ChatGPT to start a queue with threading
 def worker():
     while True:
         data = task_queue.get()
         print("Processing", data)
-        if data[0] == "32":
-            print("Save Player Login Time")
-            now = datetime.now()
-            formatted_timestamp = now.strftime("%B %d %I:%M%p")
-            print(formatted_timestamp)
-            players.insert_one({"name": data[1], "login": formatted_timestamp})
-        elif data[0] == "33":
-            print("Calculate Player total Time and save Logout Time")
-            now = datetime.now()
-            formatted_timestamp = now.strftime("%B %d %I:%M%p")
-            print(formatted_timestamp)
+        writeToDB(data)
 
 worker_thread = threading.Thread(target=worker)
 worker_thread.start()
