@@ -6,6 +6,23 @@ import * as net from "@minecraft/server-net"
 
 console.warn("Script is running, do not panic!");
 
+// Error Code Legend ////////////////////////////////////////
+
+// AdminTools Server Codes
+
+// 24: code sent back from server suggest bad request or ping
+// 26: server response, with no instructions
+// 27: response from server
+// 28: command sent from server to client
+// 29: request from addon to server (server mock)
+// 30: request from addon to sever (In game)
+// 32: player joined (sent to server)
+// 33: player left (sent to server)
+// 34: player joined (response from server)
+// 35: player left (response from server)
+
+/////////////////////////////////////////////////////////////
+
 // init code
 const world = server.world;
 const system = server.system;
@@ -72,7 +89,8 @@ async function pingHttpServer(code, result, data, server) {
     let req = await new net.HttpRequest(server);
 
     console.warn("Contents of body for HttpRequest");
-    await req.setBody(tempCode);
+    await req.setBody(tempCode + " " + data);
+    // await req.setBody(tempCode);
     console.warn(req.body);
 
     try {
@@ -219,13 +237,15 @@ world.beforeEvents.chatSend.subscribe((data) => {
 world.afterEvents.playerJoin.subscribe(async result => {
 
     console.warn(result.playerName);
-    await pingHttpServer(32, result, "player joined", requestServer);
+    let tempString = result.playerName + " joined the server";
+    await pingHttpServer(32, result, tempString, requestServer);
 
 });
 
 world.afterEvents.playerLeave.subscribe(async result => {
 
     console.warn(result.playerName);
-    await pingHttpServer(33, result, "player left", requestServer);
+    let tempString = result.playerName + " left the server";
+    await pingHttpServer(33, result, tempString, requestServer);
 
 });
