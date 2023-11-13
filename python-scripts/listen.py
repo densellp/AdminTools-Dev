@@ -7,7 +7,6 @@ import threading
 app = Flask(__name__)
 
 task_queue = Queue()
-# client = MongoClient("localhost", 27017) # connect to db instance
 client = MongoClient("mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.0.2") # connect to db instance
 db = client.playerdb # Create or reference the player db
 players = db.players # collection to parse
